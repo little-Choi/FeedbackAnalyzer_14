@@ -31,10 +31,13 @@ set(TEST_SOURCES
     unit/test_logger.cpp
     unit/test_ui_components.cpp
     unit/test_html_escape.cpp
+    unit/test_trend_analyzer.cpp
+    unit/test_sentiment_keyword_db.cpp
     unit/test_p0_regression.cpp
     integration/test_csv_behavior.cpp
     integration/test_http_routes.cpp
     integration/test_http_exceptions.cpp
+    integration/test_trend_http.cpp
 )
 
 function(configure_feedback_test_target target_name)

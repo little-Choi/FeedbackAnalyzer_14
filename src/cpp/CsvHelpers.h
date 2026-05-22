@@ -42,6 +42,19 @@ inline bool fieldEqualsIdColumn(const std::string& field) {
     return toLowerAscii(trimCsvField(field)) == "id";
 }
 
+inline bool fieldEqualsDateColumn(const std::string& field) {
+    return toLowerAscii(trimCsvField(field)) == "date";
+}
+
+inline int findDateColumnIndex(const std::vector<std::string>& fields) {
+    for (size_t i = 0; i < fields.size(); ++i) {
+        if (fieldEqualsDateColumn(fields[i])) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
 inline std::vector<std::string> parseCsvLine(const std::string& line) {
     std::vector<std::string> fields;
     std::string field;
@@ -72,7 +85,8 @@ inline int findTextColumnIndex(const std::vector<std::string>& fields) {
 
 inline bool rowLooksLikeHeader(const std::vector<std::string>& fields) {
     for (const auto& f : fields) {
-        if (fieldEqualsTextColumn(f) || fieldEqualsIdColumn(f)) {
+        if (fieldEqualsTextColumn(f) || fieldEqualsIdColumn(f) ||
+            fieldEqualsDateColumn(f)) {
             return true;
         }
     }
@@ -103,12 +117,13 @@ inline int inferTextColumnIndex(const std::vector<std::string>& fields, int defa
     return defaultIndex;
 }
 
-inline std::vector<std::string> csvUploadTexts(const std::string& fileContent) {
-    std::vector<std::string> texts;
+inline std::vector<Feedback> csvUploadFeedbackRows(const std::string& fileContent) {
+    std::vector<Feedback> rows;
     std::istringstream stream(fileContent);
     std::string line;
     bool firstLine = true;
     int textColumnIndex = 0;
+    int dateColumnIndex = -1;
     while (std::getline(stream, line)) {
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
@@ -130,23 +145,42 @@ inline std::vector<std::string> csvUploadTexts(const std::string& fileContent) {
                 if (textColumnIndex < 0) {
                     textColumnIndex = 0;
                 }
+                dateColumnIndex = findDateColumnIndex(fields);
                 continue;
             }
             textColumnIndex = inferTextColumnIndex(fields, 0);
+            dateColumnIndex = findDateColumnIndex(fields);
         }
+        std::string text;
         if (textColumnIndex >= 0 &&
-            static_cast<size_t>(textColumnIndex) < fields.size() &&
-            !fields[static_cast<size_t>(textColumnIndex)].empty()) {
-            texts.push_back(fields[static_cast<size_t>(textColumnIndex)]);
+            static_cast<size_t>(textColumnIndex) < fields.size()) {
+            text = fields[static_cast<size_t>(textColumnIndex)];
         }
+        if (text.empty()) {
+            continue;
+        }
+        std::string date;
+        if (dateColumnIndex >= 0 &&
+            static_cast<size_t>(dateColumnIndex) < fields.size()) {
+            date = fields[static_cast<size_t>(dateColumnIndex)];
+        }
+        rows.emplace_back(std::move(text), std::move(date));
+    }
+    return rows;
+}
+
+inline std::vector<std::string> csvUploadTexts(const std::string& fileContent) {
+    std::vector<std::string> texts;
+    for (const auto& row : csvUploadFeedbackRows(fileContent)) {
+        texts.push_back(row.getText());
     }
     return texts;
 }
 
 inline void appendFeedbackFromCsvContent(const std::string& fileContent,
                                          std::vector<Feedback>& feedbacks) {
-    for (const auto& text : csvUploadTexts(fileContent)) {
-        feedbacks.emplace_back(text);
+    for (auto& row : csvUploadFeedbackRows(fileContent)) {
+        feedbacks.push_back(std::move(row));
     }
 }
 

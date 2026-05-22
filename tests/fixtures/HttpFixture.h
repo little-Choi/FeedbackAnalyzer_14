@@ -9,6 +9,7 @@
 #include "httplib.h"
 #include "Session.h"
 #include "TextAnalyzer.h"
+#include "TrendAnalyzer.h"
 
 #include <chrono>
 #include <map>
@@ -93,6 +94,7 @@ public:
                 for (const auto& e : keywordResults) {
                     html << e.first << "=" << e.second << ";";
                 }
+                html << ";trend:" << (TrendAnalyzer::hasTrendData(feedbacks) ? "yes" : "no");
                 html << "</html>";
                 res.status = 200;
                 res.set_content(html.str(), "text/html; charset=UTF-8");

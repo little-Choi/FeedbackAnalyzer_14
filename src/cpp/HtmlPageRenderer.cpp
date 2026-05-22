@@ -35,6 +35,17 @@ std::string HtmlPageRenderer::render(const PageViewModel& vm) {
         .stat-item { text-align: center; padding: 15px; background-color: #f8f9fa; border-radius: 5px; flex: 1; margin: 0 10px; }
         .stat-number { font-size: 24px; font-weight: bold; color: #007bff; }
         .stat-label { color: #666; margin-top: 5px; }
+        .trend-chart { display: flex; align-items: flex-end; gap: 12px; margin: 20px 0; min-height: 120px; }
+        .trend-day { text-align: center; flex: 1; }
+        .trend-date { font-size: 11px; color: #666; margin-bottom: 4px; }
+        .trend-bar-wrap { display: flex; flex-direction: column-reverse; align-items: center; width: 36px; margin: 0 auto; }
+        .trend-seg { width: 100%; min-height: 2px; }
+        .trend-pos { background-color: #28a745; }
+        .trend-neu { background-color: #6c757d; }
+        .trend-neg { background-color: #dc3545; }
+        .trend-total { font-size: 12px; color: #333; margin-top: 4px; }
+        .trend-legend span { margin-right: 12px; font-size: 13px; }
+        .trend-legend .dot { display: inline-block; width: 10px; height: 10px; margin-right: 4px; }
     </style>
 </head>
 <body>
@@ -68,6 +79,9 @@ std::string HtmlPageRenderer::render(const PageViewModel& vm) {
                 <input type="file" id="file" name="file" accept=".csv">
             </div>
             <button type="submit">)" << u8"업로드" << R"(</button>
+        </form>
+        <form action="/trend/load-sample" method="post" style="margin-top:10px;">
+            <button type="submit" class="btn-success">)" << u8"트렌드 샘플 CSV 로드" << R"(</button>
         </form>
     </div>)";
 
@@ -122,6 +136,52 @@ std::string HtmlPageRenderer::render(const PageViewModel& vm) {
             html << "</div>";
         }
         html << R"(<a href="/download"><button class="btn-success">)" << u8"결과 다운로드" << "</button></a></div>";
+    }
+
+    if (vm.showTrend && !vm.trendData.empty()) {
+        html << R"(<div class="section"><h3>)" << u8"감정 트렌드 (날짜별)" << R"(</h3>)";
+        html << R"(<div class="trend-legend"><span><span class="dot trend-pos"></span>)" << Constants::SENTIMENT_POSITIVE
+             << R"(</span><span><span class="dot trend-neu"></span>)" << Constants::SENTIMENT_NEUTRAL
+             << R"(</span><span><span class="dot trend-neg"></span>)" << Constants::SENTIMENT_NEGATIVE
+             << R"(</span></div>)";
+        html << TrendAnalyzer::renderTrendChartHtml(vm.trendData);
+        html << "</div>";
+    }
+
+    if (!vm.sentimentKeywords.empty()) {
+        html << R"(<div class="section"><h3>)" << u8"감정 키워드 DB 관리" << R"(</h3>)";
+        if (!vm.adminMessage.empty()) {
+            html << R"(<p class="alert alert-success">)" << escapeHtml(vm.adminMessage) << "</p>";
+        }
+        for (const auto& entry : vm.sentimentKeywords) {
+            html << "<h4>" << entry.first << "</h4><ul>";
+            for (const auto& kw : entry.second) {
+                html << "<li>" << escapeHtml(kw)
+                     << R"( <form action="/admin/sentiment" method="post" style="display:inline;">)"
+                     << R"(<input type="hidden" name="action" value="remove">)"
+                     << R"(<input type="hidden" name="sentiment" value=")" << entry.first << R"(">)"
+                     << R"(<input type="hidden" name="keyword" value=")" << escapeHtml(kw) << R"(">)"
+                     << R"(<button type="submit">)" << u8"삭제" << "</button></form></li>";
+            }
+            html << "</ul>";
+        }
+        html << R"(
+        <form action="/admin/sentiment" method="post">
+            <input type="hidden" name="action" value="add">
+            <div class="form-group">
+                <label>)" << u8"감정:" << R"(</label>
+                <select name="sentiment">
+                    <option value=")" << Constants::SENTIMENT_POSITIVE << R"(">)" << Constants::SENTIMENT_POSITIVE << R"(</option>
+                    <option value=")" << Constants::SENTIMENT_NEGATIVE << R"(">)" << Constants::SENTIMENT_NEGATIVE << R"(</option>
+                    <option value=")" << Constants::SENTIMENT_NEUTRAL << R"(">)" << Constants::SENTIMENT_NEUTRAL << R"(</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>)" << u8"키워드:" << R"(</label>
+                <input type="text" name="keyword" required>
+            </div>
+            <button type="submit">)" << u8"키워드 추가" << R"(</button>
+        </form></div>)";
     }
 
     if (!vm.error.empty()) {

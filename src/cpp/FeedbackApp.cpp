@@ -9,9 +9,41 @@
 #include "HttpFormUtils.h"
 #include "Logger.h"
 #include "PageViewModel.h"
+#include "SentimentKeywordDb.h"
 #include "Session.h"
 #include "TextAnalyzer.h"
+#include "TrendAnalyzer.h"
 #include "httplib.h"
+
+#include <fstream>
+#include <sstream>
+
+namespace {
+
+SentimentKeywordDb& sentimentDb() {
+    static SentimentKeywordDb db(AppConfig::SENTIMENT_DB_PATH);
+    return db;
+}
+
+void enrichViewModel(PageViewModel& vm) {
+    vm.sentimentKeywords = sentimentDb().snapshot();
+    if (TrendAnalyzer::hasTrendData(vm.feedbacks)) {
+        vm.showTrend = true;
+        vm.trendData = TrendAnalyzer::analyzeByDate(vm.feedbacks);
+    }
+}
+
+std::string readFileToString(const std::string& path) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in) {
+        return {};
+    }
+    std::ostringstream buffer;
+    buffer << in.rdbuf();
+    return buffer.str();
+}
+
+} // namespace
 
 class AnalyzeRouteHandler {
 public:
@@ -46,11 +78,13 @@ public:
                 Logger::logInfo(u8"감성 분석 완료");
                 Logger::logInfo(u8"키워드 분석 완료");
             }
+            enrichViewModel(vm);
             res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
         } catch (const std::exception& e) {
             Logger::logError(std::string(u8"오류 발생: ") + e.what());
             PageViewModel vm;
             vm.error = u8"처리 중 오류가 발생했습니다.";
+            enrichViewModel(vm);
             res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
         }
     }
@@ -80,17 +114,80 @@ public:
                 vm.sentimentResults = analyzer_.analyzeSentimentDistribution(feedbacks);
                 vm.keywordResults = analyzer_.analyzeKeywordDistribution(feedbacks);
             }
+            enrichViewModel(vm);
             res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
         } catch (const std::exception& e) {
             Logger::logError(std::string(u8"파일 업로드 오류: ") + e.what());
             PageViewModel vm;
             vm.error = u8"파일 업로드 중 오류가 발생했습니다.";
+            enrichViewModel(vm);
             res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
         }
     }
 
 private:
     TextAnalyzer& analyzer_;
+};
+
+class TrendSampleRouteHandler {
+public:
+    void handle(const httplib::Request&, httplib::Response& res) const {
+        try {
+            auto& feedbacks = FeedbackRepository::all();
+            const std::string csv = readFileToString(AppConfig::TREND_SAMPLE_CSV_PATH);
+            if (csv.empty()) {
+                PageViewModel vm;
+                vm.warning = u8"트렌드 샘플 파일을 찾을 수 없습니다.";
+                vm.feedbacks = feedbacks;
+                enrichViewModel(vm);
+                res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
+                return;
+            }
+            appendFeedbackFromCsvContent(csv, feedbacks);
+            TextAnalyzer analyzer;
+            PageViewModel vm;
+            vm.success = u8"트렌드 샘플 CSV가 로드되었습니다.";
+            vm.feedbacks = feedbacks;
+            vm.sentimentResults = analyzer.analyzeSentimentDistribution(feedbacks);
+            vm.keywordResults = analyzer.analyzeKeywordDistribution(feedbacks);
+            enrichViewModel(vm);
+            res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
+        } catch (const std::exception& e) {
+            Logger::logError(std::string(u8"트렌드 샘플 로드 오류: ") + e.what());
+            PageViewModel vm;
+            vm.error = u8"트렌드 샘플 로드 중 오류가 발생했습니다.";
+            enrichViewModel(vm);
+            res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
+        }
+    }
+};
+
+class SentimentAdminRouteHandler {
+public:
+    void handle(const httplib::Request& req, httplib::Response& res) const {
+        auto params = parseForm(req.body);
+        const std::string action = params["action"];
+        const std::string sentiment = params["sentiment"];
+        const std::string keyword = params["keyword"];
+
+        PageViewModel vm;
+        vm.feedbacks = FeedbackRepository::all();
+        if (action == "add" && !keyword.empty()) {
+            if (sentimentDb().addKeyword(sentiment, keyword)) {
+                vm.adminMessage = u8"키워드가 추가되었습니다.";
+            } else {
+                vm.warning = u8"키워드 추가에 실패했습니다.";
+            }
+        } else if (action == "remove" && !keyword.empty()) {
+            if (sentimentDb().removeKeyword(sentiment, keyword)) {
+                vm.adminMessage = u8"키워드가 삭제되었습니다.";
+            } else {
+                vm.warning = u8"키워드 삭제에 실패했습니다.";
+            }
+        }
+        enrichViewModel(vm);
+        res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
+    }
 };
 
 class FilterRouteHandler {
@@ -109,6 +206,7 @@ public:
                 Logger::logWarning(u8"분석할 피드백이 없습니다.");
                 PageViewModel vm;
                 vm.warning = u8"분석할 피드백이 없습니다.";
+                enrichViewModel(vm);
                 res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
                 return;
             }
@@ -118,6 +216,7 @@ public:
                 Logger::logWarning(u8"필터링 결과가 없습니다.");
                 PageViewModel vm;
                 vm.warning = u8"필터링 결과가 없습니다.";
+                enrichViewModel(vm);
                 res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
                 return;
             }
@@ -128,11 +227,13 @@ public:
             vm.sentimentResults = analyzer_.analyzeSentimentDistribution(filtered);
             vm.keywordResults = analyzer_.analyzeKeywordDistribution(filtered);
             vm.feedbacks = filtered;
+            enrichViewModel(vm);
             res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
         } catch (const std::exception& e) {
             Logger::logError(std::string(u8"오류 발생: ") + e.what());
             PageViewModel vm;
             vm.error = u8"처리 중 오류가 발생했습니다.";
+            enrichViewModel(vm);
             res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
         }
     }
@@ -155,6 +256,9 @@ int FeedbackApp::run() {
     Constants::init();
     FeedbackRepository::init();
     Session::initSessionStateUgly();
+    if (!sentimentDb().loadIntoConstants()) {
+        sentimentDb().saveFromConstants();
+    }
 
     httplib::Server svr;
     TextAnalyzer textAnalyzer;
@@ -164,12 +268,15 @@ int FeedbackApp::run() {
     UploadRouteHandler uploadHandler(textAnalyzer);
     FilterRouteHandler filterHandler(textAnalyzer, filters);
     DownloadRouteHandler downloadHandler;
+    TrendSampleRouteHandler trendSampleHandler;
+    SentimentAdminRouteHandler sentimentAdminHandler;
 
     svr.Get("/", [](const httplib::Request&, httplib::Response& res) {
         Session::initSessionStateUgly();
         PageViewModel vm;
         vm.success = u8"피드백 분석기 시작";
         vm.feedbacks = FeedbackRepository::all();
+        enrichViewModel(vm);
         res.set_content(HtmlPageRenderer::render(vm), "text/html; charset=UTF-8");
     });
 
@@ -187,6 +294,14 @@ int FeedbackApp::run() {
 
     svr.Get("/download", [&downloadHandler](const httplib::Request& req, httplib::Response& res) {
         downloadHandler.handle(req, res);
+    });
+
+    svr.Post("/trend/load-sample", [&trendSampleHandler](const httplib::Request& req, httplib::Response& res) {
+        trendSampleHandler.handle(req, res);
+    });
+
+    svr.Post("/admin/sentiment", [&sentimentAdminHandler](const httplib::Request& req, httplib::Response& res) {
+        sentimentAdminHandler.handle(req, res);
     });
 
     Logger::logInfo(u8"서버가 http://localhost:" + std::to_string(AppConfig::HTTP_PORT) +
