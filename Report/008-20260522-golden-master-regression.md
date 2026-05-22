@@ -3,7 +3,7 @@
 - **보고서 번호**: 008
 - **작성일**: 2026-05-22
 - **브랜치**: refactoring
-- **커밋(작성 시점)**: 084ca99 (push 전)
+- **커밋(작성 시점)**: 9f18e49
 
 ## 1. 작업 개요
 
@@ -21,7 +21,7 @@
 | 신규 | `scripts/update_golden.ps1`, `update_golden.sh` | baseline 일괄 갱신 |
 | 수정 | `tests/CMakeLists.txt` | golden 소스·`GOLDEN_EXPECTED_DIR`·`update_golden` 타깃 |
 | 수정 | `README.md` | Golden Master 실행·갱신 안내 |
-| 신규 | `.github/workflows/tests.yml` | regression job에 `[golden]` 단계 추가 |
+| 로컬만 | `.github/workflows/tests.yml` | regression job `[golden]` 단계 — PAT `workflow` scope 없어 push 제외 |
 | 신규 | `Report/008-...`, `Prompting/008-...`, `Prompting_user/008-...` | 본 보고서·대화 저장 |
 | 제외 | `build/`, `build-cov/` | 로컬 빌드 산출물 |
 
