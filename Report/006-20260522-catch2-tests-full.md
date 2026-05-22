@@ -3,7 +3,7 @@
 - **보고서 번호**: 006
 - **작성일**: 2026-05-22
 - **브랜치**: red
-- **커밋(작성 시점)**: 362e229 (보고서 작성 전)
+- **커밋(작성 시점)**: 424a357
 
 ## 1. 작업 개요
 
@@ -19,7 +19,7 @@
 | 신규 | `tests/integration/LegacyCsv.h`, `LegacyHtml.h` | main.cpp 로직 복제(레거시 비수정) |
 | 수정 | `CMakeLists.txt` | `BUILD_TESTING`, `add_subdirectory(tests)` |
 | 수정 | `README.md` | 테스트 빌드·실행, Test To Do 전체 [x], known-fail 목록 |
-| 신규 | `.github/workflows/tests.yml` | regression / known-fail / coverage CI |
+| 로컬만 | `.github/workflows/tests.yml` | CI 워크플로 — PAT `workflow` scope 없어 push 제외 |
 | 옵션 | `feedback_analyzer_coverage` | `-DENABLE_COVERAGE=ON` 시 gcov 타깃 |
 | 미변경 | `src/cpp/` | 레거시 프로덕션 코드 비수정 |
 | 제외 | `build/`, `build-test/`, `build-full/` | 로컬 빌드 산출물 |
@@ -61,6 +61,11 @@ ctest --test-dir build-full  → 64/64 passed
 ```
 
 - known-fail 분리: `feedback_analyzer_tests.exe "[known-fail]"` / `"~[known-fail]"`
+
+### Git push
+
+- **성공**: `origin/red` ← `424a357` (`tests/`, Report 006, Prompting, README, CMakeLists.txt)
+- **제외**: `.github/workflows/tests.yml` — GitHub PAT에 `workflow` scope 없음. 로컬에만 존재. push하려면 토큰 scope 추가 후 `git add .github && git commit && git push`
 
 ## 5. 다음 단계
 
