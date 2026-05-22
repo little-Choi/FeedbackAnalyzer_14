@@ -61,7 +61,7 @@ public:
             }
         });
 
-        svr_.Post("/upload", [](const httplib::Request& req, httplib::Response& res) {
+        svr_.Post("/upload", [this](const httplib::Request& req, httplib::Response& res) {
             try {
                 if (req.body.find(kThrowMarker) != std::string::npos) {
                     throw std::runtime_error("test upload exception");
@@ -74,28 +74,50 @@ public:
                         std::istringstream stream(file.content);
                         std::string line;
                         bool firstLine = true;
+                        int textColumnIndex = 0;
                         while (std::getline(stream, line)) {
                             if (!line.empty() && line.back() == '\r') {
                                 line.pop_back();
-                            }
-                            if (firstLine) {
-                                firstLine = false;
-                                continue;
                             }
                             if (line.empty()) {
                                 continue;
                             }
                             auto fields = parseCsvLine(line);
-                            if (!fields.empty() && !fields[0].empty()) {
-                                feedbacks.emplace_back(fields[0]);
+                            if (fields.empty()) {
+                                continue;
+                            }
+                            if (firstLine) {
+                                firstLine = false;
+                                if (rowLooksLikeHeader(fields)) {
+                                    textColumnIndex = findTextColumnIndex(fields);
+                                    continue;
+                                }
+                            }
+                            if (textColumnIndex >= 0 &&
+                                static_cast<size_t>(textColumnIndex) < fields.size() &&
+                                !fields[static_cast<size_t>(textColumnIndex)].empty()) {
+                                feedbacks.emplace_back(
+                                    fields[static_cast<size_t>(textColumnIndex)]);
                             }
                         }
                     }
                 }
                 const size_t added = feedbacks.size() - before;
+                std::map<std::string, int> sentimentResults;
+                std::map<std::string, int> keywordResults;
+                if (!feedbacks.empty()) {
+                    sentimentResults = analyzer_.sent(feedbacks);
+                    keywordResults = analyzer_.kw(feedbacks);
+                }
                 std::ostringstream html;
                 html << "<html>uploaded:" << feedbacks.size() << ";added:" << added;
-                html << ";stats:";  // legacy upload passes empty stats maps
+                html << ";stats:";
+                for (const auto& e : sentimentResults) {
+                    html << e.first << "=" << e.second << ";";
+                }
+                for (const auto& e : keywordResults) {
+                    html << e.first << "=" << e.second << ";";
+                }
                 html << "</html>";
                 res.status = 200;
                 res.set_content(html.str(), "text/html; charset=UTF-8");
@@ -226,6 +248,24 @@ private:
             }
         }
         return params;
+    }
+
+    static int findTextColumnIndex(const std::vector<std::string>& fields) {
+        for (size_t i = 0; i < fields.size(); ++i) {
+            if (fields[i] == "text") {
+                return static_cast<int>(i);
+            }
+        }
+        return 0;
+    }
+
+    static bool rowLooksLikeHeader(const std::vector<std::string>& fields) {
+        for (const auto& f : fields) {
+            if (f == "text" || f == "id") {
+                return true;
+            }
+        }
+        return false;
     }
 
     static std::vector<std::string> parseCsvLine(const std::string& line) {

@@ -71,6 +71,7 @@ static std::string escapeHtml(const std::string& s) {
             case '<': out += "&lt;"; break;
             case '>': out += "&gt;"; break;
             case '"': out += "&quot;"; break;
+            case '\'': out += "&#39;"; break;
             default: out += c;
         }
     }
@@ -230,6 +231,37 @@ static std::vector<std::string> parseCsvLine(const std::string& line) {
     return fields;
 }
 
+static int findTextColumnIndex(const std::vector<std::string>& fields) {
+    for (size_t i = 0; i < fields.size(); ++i) {
+        if (fields[i] == "text") {
+            return static_cast<int>(i);
+        }
+    }
+    return 0;
+}
+
+static bool rowLooksLikeHeader(const std::vector<std::string>& fields) {
+    for (const auto& f : fields) {
+        if (f == "text" || f == "id") {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void appendFeedbackFromCsvRow(const std::vector<std::string>& fields,
+                                     int textColumnIndex,
+                                     std::vector<Feedback>& feedbacks) {
+    if (textColumnIndex < 0 ||
+        static_cast<size_t>(textColumnIndex) >= fields.size()) {
+        return;
+    }
+    const std::string& text = fields[static_cast<size_t>(textColumnIndex)];
+    if (!text.empty()) {
+        feedbacks.push_back(Feedback(text));
+    }
+}
+
 int main() {
     Constants::init();
     Filters::initFilterKeywords();
@@ -296,20 +328,31 @@ int main() {
                     std::istringstream stream(file.content);
                     std::string line;
                     bool firstLine = true;
+                    int textColumnIndex = 0;
                     while (std::getline(stream, line)) {
                         if (!line.empty() && line.back() == '\r') line.pop_back();
-                        if (firstLine) { firstLine = false; continue; }
                         if (line.empty()) continue;
                         auto fields = parseCsvLine(line);
-                        if (!fields.empty() && !fields[0].empty()) {
-                            feedbacks.push_back(Feedback(fields[0]));
+                        if (fields.empty()) continue;
+                        if (firstLine) {
+                            firstLine = false;
+                            if (rowLooksLikeHeader(fields)) {
+                                textColumnIndex = findTextColumnIndex(fields);
+                                continue;
+                            }
                         }
+                        appendFeedbackFromCsvRow(fields, textColumnIndex, feedbacks);
                     }
                     Logger::logInfo(u8"파일이 성공적으로 업로드되었습니다.");
                 }
             }
             std::string success = std::to_string(feedbacks.size()) + u8"개의 피드백이 입력되었습니다.";
-            std::string html = renderPage(success, "", "", {}, {}, feedbacks);
+            std::map<std::string, int> sentimentResults, keywordResults;
+            if (!feedbacks.empty()) {
+                sentimentResults = textAnalyzer.sent(feedbacks);
+                keywordResults = textAnalyzer.kw(feedbacks);
+            }
+            std::string html = renderPage(success, "", "", sentimentResults, keywordResults, feedbacks);
             res.set_content(html, "text/html; charset=UTF-8");
         } catch (const std::exception& e) {
             Logger::logError(std::string(u8"파일 업로드 오류: ") + e.what());

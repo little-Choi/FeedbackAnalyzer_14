@@ -19,6 +19,9 @@ inline std::string escapeHtml(const std::string& s) {
             case '"':
                 out += "&quot;";
                 break;
+            case '\'':
+                out += "&#39;";
+                break;
             default:
                 out += c;
         }

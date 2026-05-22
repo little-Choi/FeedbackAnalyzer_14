@@ -47,18 +47,18 @@ TEST_CASE_METHOD(FiltersFixture, "FI-F04 empty data returns zero", "[p1][filters
     REQUIRE(result.empty());
 }
 
-TEST_CASE_METHOD(FiltersFixture, "FI-F05 quality filter skips main keyword", "[p0][filters][known-fail]") {
+TEST_CASE_METHOD(FiltersFixture, "FI-F05 quality filter matches main keyword", "[p0][filters]") {
     auto data = makeFeedbacks({u8"품질이 좋습니다"});
     CoutSilencer silence;
     auto result = filters.fil(data, u8"전체", u8"품질");
-    REQUIRE(result.empty());
+    REQUIRE(result.size() == 1);
 }
 
-TEST_CASE_METHOD(FiltersFixture, "FI-F06 neutral filter ok phrase returns zero", "[p0][filters][known-fail]") {
+TEST_CASE_METHOD(FiltersFixture, "FI-F06 neutral filter ok phrase matches stats", "[p0][filters]") {
     auto data = makeFeedbacks({u8"괜찮아요"});
     CoutSilencer silence;
     auto result = filters.fil(data, u8"중립", u8"전체");
-    REQUIRE(result.empty());
+    REQUIRE(result.size() == 1);
 }
 
 TEST_CASE_METHOD(FiltersFixture, "FI-F07 negative filter matches late keyword", "[p0][filters]") {
@@ -68,12 +68,11 @@ TEST_CASE_METHOD(FiltersFixture, "FI-F07 negative filter matches late keyword", 
     REQUIRE(result.size() == 1);
 }
 
-TEST_CASE_METHOD(FiltersFixture, "FI-F07b late past tense not matched by keyword", "[p0][filters][known-fail]") {
+TEST_CASE_METHOD(FiltersFixture, "FI-F07b late past tense matches negative keyword", "[p0][filters]") {
     auto data = makeFeedbacks({u8"배송이 늦었어요"});
     CoutSilencer silence;
     auto result = filters.fil(data, u8"부정", u8"전체");
-    INFO("test_plan expects 1; legacy substring find does not match 늦다 in 늦었어요");
-    REQUIRE(result.size() == 0);
+    REQUIRE(result.size() == 1);
 }
 
 TEST_CASE_METHOD(FiltersFixture, "FI-P2-02 fil prints filtered lines to stdout", "[p2][filters]") {

@@ -7,6 +7,6 @@ TEST_CASE("HTML-01 escapeHtml encodes special chars", "[p2][html]") {
     REQUIRE(escapeHtml("\"quote\"") == "&quot;quote&quot;");
 }
 
-TEST_CASE("HTML-02 apostrophe not escaped in legacy", "[p3][html][known-fail]") {
-    REQUIRE(escapeHtml("it's") == "it's");
+TEST_CASE("HTML-02 apostrophe is escaped", "[p3][html]") {
+    REQUIRE(escapeHtml("it's") == "it&#39;s");
 }

@@ -3,12 +3,11 @@
 #include "DomainFixture.h"
 #include "LegacyCsv.h"
 
-TEST_CASE("CSV-R02 id,text uses first column only", "[p0][csv][known-fail]") {
+TEST_CASE("CSV-R02 id,text uses text column", "[p0][csv]") {
     const std::string csv = "id,text\n1,실제본문\n";
     auto texts = csvUploadTexts(csv);
     REQUIRE(texts.size() == 1);
-    REQUIRE(texts[0] == "1");
-    REQUIRE(texts[0] != u8"실제본문");
+    REQUIRE(texts[0] == u8"실제본문");
 }
 
 TEST_CASE("CSV-R04 download without filter yields BOM header only", "[p0][csv]") {
@@ -48,8 +47,9 @@ TEST_CASE("CSV upload header only adds zero rows", "[p2][csv]") {
     REQUIRE(texts.empty());
 }
 
-TEST_CASE("CSV-NH01 no header row loses only data line", "[p1][csv][known-fail]") {
+TEST_CASE("CSV-NH01 no header row keeps data line", "[p1][csv]") {
     const std::string csv = std::string(u8"단일데이터") + "\n";
     auto texts = csvUploadTexts(csv);
-    REQUIRE(texts.empty());
+    REQUIRE(texts.size() == 1);
+    REQUIRE(texts[0] == u8"단일데이터");
 }

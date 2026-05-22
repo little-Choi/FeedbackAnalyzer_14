@@ -1,6 +1,6 @@
 #pragma once
 
-// Replicated from main.cpp (legacy unchanged) for CSV behavior tests.
+// Mirrors main.cpp CSV upload/download helpers (keep in sync with src/cpp/main.cpp).
 #include "Feedback.h"
 
 #include <sstream>
@@ -26,25 +26,52 @@ inline std::vector<std::string> parseCsvLine(const std::string& line) {
     return fields;
 }
 
+inline int findTextColumnIndex(const std::vector<std::string>& fields) {
+    for (size_t i = 0; i < fields.size(); ++i) {
+        if (fields[i] == "text") {
+            return static_cast<int>(i);
+        }
+    }
+    return 0;
+}
+
+inline bool rowLooksLikeHeader(const std::vector<std::string>& fields) {
+    for (const auto& f : fields) {
+        if (f == "text" || f == "id") {
+            return true;
+        }
+    }
+    return false;
+}
+
 inline std::vector<std::string> csvUploadTexts(const std::string& fileContent) {
     std::vector<std::string> texts;
     std::istringstream stream(fileContent);
     std::string line;
     bool firstLine = true;
+    int textColumnIndex = 0;
     while (std::getline(stream, line)) {
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
-        }
-        if (firstLine) {
-            firstLine = false;
-            continue;
         }
         if (line.empty()) {
             continue;
         }
         auto fields = parseCsvLine(line);
-        if (!fields.empty() && !fields[0].empty()) {
-            texts.push_back(fields[0]);
+        if (fields.empty()) {
+            continue;
+        }
+        if (firstLine) {
+            firstLine = false;
+            if (rowLooksLikeHeader(fields)) {
+                textColumnIndex = findTextColumnIndex(fields);
+                continue;
+            }
+        }
+        if (textColumnIndex >= 0 &&
+            static_cast<size_t>(textColumnIndex) < fields.size() &&
+            !fields[static_cast<size_t>(textColumnIndex)].empty()) {
+            texts.push_back(fields[static_cast<size_t>(textColumnIndex)]);
         }
     }
     return texts;

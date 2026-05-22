@@ -67,7 +67,7 @@ TEST_CASE("EX-05 invalid sentiment filter yields warning", "[p2][http][exception
     REQUIRE(res->body.find(u8"필터링 결과가 없습니다") != std::string::npos);
 }
 
-TEST_CASE("HTTP-H04b upload response has empty stats like legacy", "[p1][http][known-fail]") {
+TEST_CASE("HTTP-H04b upload response includes analysis stats", "[p1][http]") {
     HttpTestServer server;
     httplib::Client cli(server.baseUrl());
     Session::updateCurrentFeedbacks({});
@@ -81,6 +81,5 @@ TEST_CASE("HTTP-H04b upload response has empty stats like legacy", "[p1][http][k
     const auto statsPos = res->body.find("stats:");
     REQUIRE(statsPos != std::string::npos);
     const auto afterStats = res->body.substr(statsPos + 6);
-    REQUIRE(afterStats.find(u8"긍정=") == std::string::npos);
-    REQUIRE(afterStats.find(u8"배송=") == std::string::npos);
+    REQUIRE(afterStats.find(u8"중립=") != std::string::npos);
 }

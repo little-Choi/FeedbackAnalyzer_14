@@ -76,7 +76,7 @@ feedback_analyzer_cpp/
 
 ## 테스트
 
-기준: [docs/test_plan.md](docs/test_plan.md) · C++17 · Catch2 v3 · 레거시 `src/cpp/` 비수정
+기준: [docs/test_plan.md](docs/test_plan.md) · [docs/qa_analysis.md](docs/qa_analysis.md) · C++17 · Catch2 v3
 
 ### 빌드 및 실행
 
@@ -101,39 +101,73 @@ build/tests/feedback_analyzer_tests.exe "[known-fail]"
 build/tests/feedback_analyzer_tests.exe "~[known-fail]"
 ```
 
-### Test To Do list
+### 테스트 케이스 (Green — 64 cases / 135 assertions)
 
-| 상태 | ID | 모듈 | 설명 | 태그 |
+| 상태 | ID | 모듈 | 설명 | 소스 |
 |------|-----|------|------|------|
-| [x] | FB-01~04 | Feedback | 생성·빈문자열·UTF-8·장문 | `tests/unit/test_feedback.cpp` |
-| [x] | TA-S01~08 | TextAnalyzer::sent | 감정 분포 P0/P1 | `test_text_analyzer.cpp` |
-| [x] | TA-K01~05 | TextAnalyzer::kw | 키워드 분포 | `test_text_analyzer.cpp` |
-| [x] | FI-F01~08 | Filters::fil | 필터 P0·F5 게이트 | `test_filters.cpp` |
-| [x] | SE-R01~04 | Session | static 격리·참조 | `test_session.cpp` |
-| [x] | CO-01~04 | Constants | init·카테고리 | `test_constants.cpp` |
-| [x] | CSV-R02,R04,ESC | CSV | 업로드/다운로드 현재 동작 | `test_csv_behavior.cpp` |
-| [x] | HTTP-H01~04 | HTTP | 스모크 라우트 | `test_http_routes.cpp` |
-| [x] | HTTP-H04b | HTTP | 업로드 후 통계 미표시 (BUG-P1-02) | `test_http_exceptions.cpp` |
-| [x] | PERF-01 | 성능 | 1000+ 피드백·10s 이내 | `test_performance.cpp` |
-| [x] | EX-01~05 | HTTP | 예외·invalid sentiment | `test_http_exceptions.cpp` |
-| [x] | LG-01~05 | Logger | log smoke·debug 모드 | `test_logger.cpp` |
-| [x] | UI-01~02 | UIComponents | CAT golden 5종 | `test_ui_components.cpp` |
-| [x] | FH-01~02 | FileHandler | 스텁 stdout | `test_file_handler.cpp` |
-| [x] | HTML-01~02 | HTML | escapeHtml·apostrophe | `test_html_escape.cpp` |
-| [x] | FI-P2-02 | Filters | fil stdout 부작용 | `test_filters.cpp` |
-| [x] | CSV-NH01 | CSV | 헤더 없음 1행 유실 | `test_csv_behavior.cpp` |
-| [x] | coverage | gcov/lcov | `-DENABLE_COVERAGE=ON` → `feedback_analyzer_coverage` | `tests/CMakeLists.txt` |
-| [x] | CI | ctest/GitHub Actions | `known-fail` 분리 job | `.github/workflows/tests.yml` |
+| [x] | FB-01 | Feedback | 생성·텍스트 조회 | `tests/unit/test_feedback.cpp` |
+| [x] | FB-02 | Feedback | 빈 문자열 저장 | `tests/unit/test_feedback.cpp` |
+| [x] | FB-03 | Feedback | UTF-8 한글 보존 | `tests/unit/test_feedback.cpp` |
+| [x] | FB-04 | Feedback | 장문(10KB+) 저장 | `tests/unit/test_feedback.cpp` |
+| [x] | TA-S01 | TextAnalyzer::sent | 긍정 단일 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-S02 | TextAnalyzer::sent | 부정 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-S03 | TextAnalyzer::sent | 키워드 없음 → 중립 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-S04 | TextAnalyzer::sent | 긍·부정 혼재 → 긍정 (if-else 순서) | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-S05 | TextAnalyzer::sent | 빈 목록 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-S06 | TextAnalyzer::sent | 분포 합계 = N | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-S07 | TextAnalyzer::sent | `배송이 늦었어요` → 부정 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-S08 | TextAnalyzer::sent | `괜찮아요` → 중립 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-K01 | TextAnalyzer::kw | main 키워드·배송 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-K02 | TextAnalyzer::kw | `품질이 좋습니다` | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-K03 | TextAnalyzer::kw | 복수 카테고리 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-K04 | TextAnalyzer::kw | 미매칭 | `tests/unit/test_text_analyzer.cpp` |
+| [x] | TA-K05 | TextAnalyzer::kw | `배송지연` | `tests/unit/test_text_analyzer.cpp` |
+| [x] | FI-F01 | Filters::fil | 긍정+전체 | `tests/unit/test_filters.cpp` |
+| [x] | FI-F02 | Filters::fil | 전체+배송 | `tests/unit/test_filters.cpp` |
+| [x] | FI-F03 | Filters::fil | 긍정+배송 AND | `tests/unit/test_filters.cpp` |
+| [x] | FI-F04 | Filters::fil | 빈 데이터 | `tests/unit/test_filters.cpp` |
+| [x] | FI-F05 | Filters::fil | 품질+전체 (main 키워드) | `tests/unit/test_filters.cpp` |
+| [x] | FI-F06 | Filters::fil | 중립+전체 (`괜찮아요`) | `tests/unit/test_filters.cpp` |
+| [x] | FI-F07 | Filters::fil | 부정+`늦다` | `tests/unit/test_filters.cpp` |
+| [x] | FI-F07b | Filters::fil | 부정+`늦었어요` | `tests/unit/test_filters.cpp` |
+| [x] | FI-F08 | Filters::fil | sent(긍정) = fil(긍정).size | `tests/unit/test_filters.cpp` |
+| [x] | FI-P2-02 | Filters::fil | stdout 부작용 | `tests/unit/test_filters.cpp` |
+| [x] | SE-R01 | Session | update 후 size | `tests/unit/test_session.cpp` |
+| [x] | SE-R02 | Session | key 무시 | `tests/unit/test_session.cpp` |
+| [x] | SE-R03 | Session | 반환 참조 수정 반영 | `tests/unit/test_session.cpp` |
+| [x] | SE-R04 | Session | static 격리 | `tests/unit/test_session.cpp` |
+| [x] | CO-01 | Constants | init idempotent | `tests/unit/test_constants.cpp` |
+| [x] | CO-02 | Constants | 카테고리 5종 | `tests/unit/test_constants.cpp` |
+| [x] | CO-03 | Constants | `main` 키 존재 | `tests/unit/test_constants.cpp` |
+| [x] | CO-04 | Constants | 긍정 키워드 중복 허용 | `tests/unit/test_constants.cpp` |
+| [x] | CSV-R02 | CSV | `id,text` → `text` 컬럼 | `tests/integration/test_csv_behavior.cpp` |
+| [x] | CSV-R04 | CSV | 필터 없이 download → 헤더만 | `tests/integration/test_csv_behavior.cpp` |
+| [x] | CSV-ESC | CSV | 콤마 미이스케이프(현행) | `tests/integration/test_csv_behavior.cpp` |
+| [x] | CSV-NH01 | CSV | 헤더 없음 1행 유지 | `tests/integration/test_csv_behavior.cpp` |
+| [x] | HTTP-H01 | HTTP | POST `/analyze` | `tests/integration/test_http_routes.cpp` |
+| [x] | HTTP-H02 | HTTP | POST `/filter` 데이터 없음 | `tests/integration/test_http_routes.cpp` |
+| [x] | HTTP-H03 | HTTP | filter 후 `/download` | `tests/integration/test_http_routes.cpp` |
+| [x] | HTTP-H04 | HTTP | POST `/upload` CSV | `tests/integration/test_http_routes.cpp` |
+| [x] | HTTP-H04b | HTTP | 업로드 후 통계 표시 | `tests/integration/test_http_exceptions.cpp` |
+| [x] | EX-01~05 | HTTP | 예외·invalid sentiment | `tests/integration/test_http_exceptions.cpp` |
+| [x] | PERF-01 | 성능 | 1000+·10s 이내 | `tests/unit/test_performance.cpp` |
+| [x] | LG-01~05 | Logger | log smoke·debug | `tests/unit/test_logger.cpp` |
+| [x] | UI-01~02 | UIComponents | CAT 5종 | `tests/unit/test_ui_components.cpp` |
+| [x] | FH-01~02 | FileHandler | 스텁 stdout | `tests/unit/test_file_handler.cpp` |
+| [x] | HTML-01 | HTML | `escapeHtml` 특수문자 | `tests/unit/test_html_escape.cpp` |
+| [x] | HTML-02 | HTML | apostrophe `&#39;` | `tests/unit/test_html_escape.cpp` |
+| [x] | coverage | gcov | `-DENABLE_COVERAGE=ON` | `tests/CMakeLists.txt` |
+| [x] | CI | GitHub Actions | regression + `~[known-fail]` | `.github/workflows/tests.yml` |
 
-**알려진 결함 테스트 (`[known-fail]`)** — 통과 = 현재 레거시 동작 고정, 수정 후 기대값 갱신 필요:
+### 레거시 수정 요약 (2026-05-22)
 
-- TA-S04 (긍·부정 혼재 → 긍정)
-- FI-F05 (품질 필터 main 스킵)
-- FI-F06 (중립 필터 ≠ 통계)
-- FI-F07b (`늦었어요` vs `늦다` 부분문자열 불일치)
-- CSV-R02 (`id,text` → 첫 컬럼만 저장)
-- CSV-NH01 (헤더 없는 CSV → 첫 행 유실)
-- HTTP-H04b (업로드 후 HTML 통계 비어 있음)
-- HTML-02 (apostrophe 미이스케이프)
+[docs/qa_analysis.md](docs/qa_analysis.md) P0/P1 결함을 `src/cpp/`에서 수정했습니다. **64 test cases · 135 assertions 전부 Green.**
 
-**리팩토링 게이트 (녹색 전환 예정):** FI-F08, TA-S07/S08 `[post-phase2]`, CSV-R02 Phase 3 — [test_plan.md §8](docs/test_plan.md)
+| 영역 | 변경 |
+|------|------|
+| **Filters** | 카테고리 필터가 `TextAnalyzer::kw`와 동일하게 `main` 키워드 사용; 감성 필터가 `Constants::SENTIMENT_KEYWORDS` 단일 사전 사용 (`S_KEYWORDS` 제거) |
+| **Constants** | 부정 키워드에 `늦`, `늦다` 추가 → `늦었어요` 등과 통계·필터 일치 |
+| **main.cpp** | CSV `text` 컬럼 인식·헤더 없는 1행 유지; 업로드 후 `sent`/`kw` 통계 렌더; `escapeHtml`에 `'` → `&#39;` |
+| **테스트** | `[known-fail]` 기대값을 수정된 동작에 맞게 갱신 (`LegacyCsv.h`, `LegacyHtml.h`, `HttpFixture.h` 동기화) |
+
+남은 개선(리팩토링 범위): `fil_data` vs Session 분리, CSV 다운로드 이스케이프, `FileHandler` 실구현, HTML/라우트 분리 — [test_plan.md §8](docs/test_plan.md)

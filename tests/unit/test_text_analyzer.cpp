@@ -19,7 +19,7 @@ TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S03 neutral when no sentiment keyword"
     REQUIRE(res[u8"중립"] == 1);
 }
 
-TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S04 mixed positive-negative counts as positive", "[p0][text_analyzer][sent][known-fail]") {
+TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S04 mixed positive-negative counts as positive", "[p0][text_analyzer][sent]") {
     auto res = analyzer.sent(makeFeedbacks({u8"좋은데 나쁜 부분도 있음"}));
     REQUIRE(res[u8"긍정"] == 1);
     REQUIRE(res[u8"부정"] == 0);
@@ -51,9 +51,9 @@ TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S06 sentiment distribution sums to N",
     REQUIRE(sum == static_cast<int>(data.size()));
 }
 
-TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S07 late delivery stats neutral", "[p0][text_analyzer][sent]") {
+TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S07 late delivery stats negative", "[p0][text_analyzer][sent]") {
     auto res = analyzer.sent(makeFeedbacks({u8"배송이 늦었어요"}));
-    REQUIRE(res[u8"중립"] == 1);
+    REQUIRE(res[u8"부정"] == 1);
 }
 
 TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S08 ok phrase stats neutral", "[p0][text_analyzer][sent]") {
