@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Constants.h"
+#include "CsvHelpers.h"
 #include "Feedback.h"
 #include "Filters.h"
 #include "httplib.h"
@@ -71,35 +72,7 @@ public:
                 if (req.form.has_file("file")) {
                     const auto file = req.form.get_file("file");
                     if (!file.content.empty()) {
-                        std::istringstream stream(file.content);
-                        std::string line;
-                        bool firstLine = true;
-                        int textColumnIndex = 0;
-                        while (std::getline(stream, line)) {
-                            if (!line.empty() && line.back() == '\r') {
-                                line.pop_back();
-                            }
-                            if (line.empty()) {
-                                continue;
-                            }
-                            auto fields = parseCsvLine(line);
-                            if (fields.empty()) {
-                                continue;
-                            }
-                            if (firstLine) {
-                                firstLine = false;
-                                if (rowLooksLikeHeader(fields)) {
-                                    textColumnIndex = findTextColumnIndex(fields);
-                                    continue;
-                                }
-                            }
-                            if (textColumnIndex >= 0 &&
-                                static_cast<size_t>(textColumnIndex) < fields.size() &&
-                                !fields[static_cast<size_t>(textColumnIndex)].empty()) {
-                                feedbacks.emplace_back(
-                                    fields[static_cast<size_t>(textColumnIndex)]);
-                            }
-                        }
+                        appendFeedbackFromCsvContent(file.content, feedbacks);
                     }
                 }
                 const size_t added = feedbacks.size() - before;
@@ -250,42 +223,6 @@ private:
         return params;
     }
 
-    static int findTextColumnIndex(const std::vector<std::string>& fields) {
-        for (size_t i = 0; i < fields.size(); ++i) {
-            if (fields[i] == "text") {
-                return static_cast<int>(i);
-            }
-        }
-        return 0;
-    }
-
-    static bool rowLooksLikeHeader(const std::vector<std::string>& fields) {
-        for (const auto& f : fields) {
-            if (f == "text" || f == "id") {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static std::vector<std::string> parseCsvLine(const std::string& line) {
-        std::vector<std::string> fields;
-        std::string field;
-        bool inQuotes = false;
-        for (size_t i = 0; i < line.size(); i++) {
-            char c = line[i];
-            if (c == '"') {
-                inQuotes = !inQuotes;
-            } else if (c == ',' && !inQuotes) {
-                fields.push_back(field);
-                field.clear();
-            } else {
-                field += c;
-            }
-        }
-        fields.push_back(field);
-        return fields;
-    }
 };
 
 inline std::vector<Feedback> HttpTestServer::fil_data_;

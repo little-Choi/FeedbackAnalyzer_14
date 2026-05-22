@@ -7,6 +7,7 @@
 #include "FileHandler.h"
 #include "UIComponents.h"
 #include "Logger.h"
+#include "CsvHelpers.h"
 #include <sstream>
 #include <fstream>
 #include <algorithm>
@@ -211,57 +212,6 @@ static std::string renderPage(const std::string& success,
     return html.str();
 }
 
-// Simple CSV line parser
-static std::vector<std::string> parseCsvLine(const std::string& line) {
-    std::vector<std::string> fields;
-    std::string field;
-    bool inQuotes = false;
-    for (size_t i = 0; i < line.size(); i++) {
-        char c = line[i];
-        if (c == '"') {
-            inQuotes = !inQuotes;
-        } else if (c == ',' && !inQuotes) {
-            fields.push_back(field);
-            field.clear();
-        } else {
-            field += c;
-        }
-    }
-    fields.push_back(field);
-    return fields;
-}
-
-static int findTextColumnIndex(const std::vector<std::string>& fields) {
-    for (size_t i = 0; i < fields.size(); ++i) {
-        if (fields[i] == "text") {
-            return static_cast<int>(i);
-        }
-    }
-    return 0;
-}
-
-static bool rowLooksLikeHeader(const std::vector<std::string>& fields) {
-    for (const auto& f : fields) {
-        if (f == "text" || f == "id") {
-            return true;
-        }
-    }
-    return false;
-}
-
-static void appendFeedbackFromCsvRow(const std::vector<std::string>& fields,
-                                     int textColumnIndex,
-                                     std::vector<Feedback>& feedbacks) {
-    if (textColumnIndex < 0 ||
-        static_cast<size_t>(textColumnIndex) >= fields.size()) {
-        return;
-    }
-    const std::string& text = fields[static_cast<size_t>(textColumnIndex)];
-    if (!text.empty()) {
-        feedbacks.push_back(Feedback(text));
-    }
-}
-
 int main() {
     Constants::init();
     Filters::initFilterKeywords();
@@ -325,24 +275,7 @@ int main() {
             if (req.form.has_file("file")) {
                 const auto file = req.form.get_file("file");
                 if (!file.content.empty()) {
-                    std::istringstream stream(file.content);
-                    std::string line;
-                    bool firstLine = true;
-                    int textColumnIndex = 0;
-                    while (std::getline(stream, line)) {
-                        if (!line.empty() && line.back() == '\r') line.pop_back();
-                        if (line.empty()) continue;
-                        auto fields = parseCsvLine(line);
-                        if (fields.empty()) continue;
-                        if (firstLine) {
-                            firstLine = false;
-                            if (rowLooksLikeHeader(fields)) {
-                                textColumnIndex = findTextColumnIndex(fields);
-                                continue;
-                            }
-                        }
-                        appendFeedbackFromCsvRow(fields, textColumnIndex, feedbacks);
-                    }
+                    appendFeedbackFromCsvContent(file.content, feedbacks);
                     Logger::logInfo(u8"파일이 성공적으로 업로드되었습니다.");
                 }
             }

@@ -3,8 +3,22 @@
 #include "DomainFixture.h"
 #include "LegacyCsv.h"
 
-TEST_CASE("CSV-R02 id,text uses text column", "[p0][csv]") {
-    const std::string csv = "id,text\n1,실제본문\n";
+TEST_CASE("CSV-R02 id,text uses text column", "[p0][csv][CSV-R02]") {
+    const std::string csv = std::string(u8"id,text\n1,") + u8"실제본문\n";
+    auto texts = csvUploadTexts(csv);
+    REQUIRE(texts.size() == 1);
+    REQUIRE(texts[0] == u8"실제본문");
+}
+
+TEST_CASE("CSV-R02c headerless id,text row uses second column", "[p0][csv][CSV-R02]") {
+    const std::string csv = std::string(u8"1,") + u8"실제본문\n";
+    auto texts = csvUploadTexts(csv);
+    REQUIRE(texts.size() == 1);
+    REQUIRE(texts[0] == u8"실제본문");
+}
+
+TEST_CASE("CSV-R02b id,text with UTF-8 BOM uses text column", "[p0][csv][CSV-R02]") {
+    const std::string csv = std::string("\xEF\xBB\xBF") + std::string(u8"id,text\n1,") + u8"실제본문\n";
     auto texts = csvUploadTexts(csv);
     REQUIRE(texts.size() == 1);
     REQUIRE(texts[0] == u8"실제본문");

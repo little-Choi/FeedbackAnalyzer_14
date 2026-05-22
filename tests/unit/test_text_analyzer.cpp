@@ -51,7 +51,7 @@ TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S06 sentiment distribution sums to N",
     REQUIRE(sum == static_cast<int>(data.size()));
 }
 
-TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S07 late delivery stats negative", "[p0][text_analyzer][sent]") {
+TEST_CASE_METHOD(TextAnalyzerFixture, "TA-S07 late delivery stats negative", "[p0][text_analyzer][sent][TA-S07]") {
     auto res = analyzer.sent(makeFeedbacks({u8"배송이 늦었어요"}));
     REQUIRE(res[u8"부정"] == 1);
 }

@@ -27,6 +27,7 @@ set(TEST_SOURCES
     unit/test_ui_components.cpp
     unit/test_file_handler.cpp
     unit/test_html_escape.cpp
+    unit/test_p0_regression.cpp
     integration/test_csv_behavior.cpp
     integration/test_http_routes.cpp
     integration/test_http_exceptions.cpp

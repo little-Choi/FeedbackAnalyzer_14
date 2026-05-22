@@ -4,6 +4,13 @@ project(FeedbackAnalyzer LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Korean literals in src/cpp/*.cpp must match u8"" in tests (MinGW/MSVC UTF-8).
+if(MSVC)
+    add_compile_options(/utf-8)
+else()
+    add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
+
 add_executable(feedback_analyzer
     src/cpp/main.cpp
     src/cpp/Constants.cpp

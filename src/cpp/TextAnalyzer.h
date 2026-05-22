@@ -4,18 +4,12 @@
 #include <map>
 #include "Feedback.h"
 #include "Constants.h"
+#include "SentimentMatcher.h"
 
 class TextAnalyzer {
 private:
     static std::map<std::string, int> globalSent;
     static std::map<std::string, int> globalKw;
-
-    static bool containsAny(const std::string& text, const std::vector<std::string>& keywords) {
-        for (const auto& kw : keywords) {
-            if (text.find(kw) != std::string::npos) return true;
-        }
-        return false;
-    }
 
 public:
     std::map<std::string, int> sent(const std::vector<Feedback>& feedbacks) {
@@ -26,13 +20,7 @@ public:
 
         for (const auto& f : feedbacks) {
             std::string txt = f.getText();
-            std::string s = u8"중립";
-            if (containsAny(txt, Constants::SENTIMENT_KEYWORDS[u8"긍정"])) {
-                s = u8"긍정";
-            } else if (containsAny(txt, Constants::SENTIMENT_KEYWORDS[u8"부정"])) {
-                s = u8"부정";
-            }
-            res[s]++;
+            res[classifySentiment(txt)]++;
         }
 
         globalSent = res;
@@ -51,7 +39,7 @@ public:
                 const std::string& cat = entry.first;
                 if (entry.second.count("main")) {
                     const auto& kws = entry.second.at("main");
-                    if (containsAny(txt, kws)) {
+                    if (containsAnyKeyword(txt, kws)) {
                         res2[cat]++;
                     }
                 }
