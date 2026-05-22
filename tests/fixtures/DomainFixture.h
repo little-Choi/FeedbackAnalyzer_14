@@ -2,6 +2,7 @@
 
 #include "Constants.h"
 #include "Feedback.h"
+#include "FeedbackRepository.h"
 #include "Filters.h"
 #include "Session.h"
 #include "TextAnalyzer.h"
@@ -13,8 +14,9 @@
 struct DomainFixture {
     DomainFixture() {
         Constants::init();
-        Filters::initFilterKeywords();
+        FeedbackRepository::init();
         Session::updateCurrentFeedbacks({});
+        FeedbackRepository::clearLastFiltered();
     }
 
     ~DomainFixture() { Session::updateCurrentFeedbacks({}); }

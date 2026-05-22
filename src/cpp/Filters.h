@@ -1,48 +1,65 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <map>
 #include <iostream>
+#include "AppConfig.h"
 #include "Feedback.h"
-#include "Constants.h"
-#include "SentimentMatcher.h"
+#include "CategoryMatcher.h"
+#include "SentimentClassifier.h"
 
 class Filters {
 public:
-    static void initFilterKeywords();
+    [[nodiscard]] std::vector<Feedback> filterBySentimentAndCategory(
+        const std::vector<Feedback>& dataList,
+        const std::string& sFilter,
+        const std::string& kFilter) {
+        std::vector<Feedback> afterSentiment = filterBySentiment(dataList, sFilter);
+        std::vector<Feedback> result = filterByCategory(afterSentiment, kFilter);
+        printFilteredToStdout(result);
+        return result;
+    }
 
-    std::vector<Feedback> fil(const std::vector<Feedback>& dataList,
-                              const std::string& sFilter,
-                              const std::string& kFilter) {
-        std::vector<Feedback> tmpFiltered;
+    // Legacy alias
+    [[nodiscard]] std::vector<Feedback> fil(const std::vector<Feedback>& dataList,
+                                              const std::string& sFilter,
+                                              const std::string& kFilter) {
+        return filterBySentimentAndCategory(dataList, sFilter, kFilter);
+    }
 
-        if (sFilter != u8"전체") {
-            for (const auto& item : dataList) {
-                std::string txt = item.getText();
-                if (classifySentiment(txt) == sFilter) {
-                    tmpFiltered.push_back(item);
-                }
-            }
-        } else {
-            tmpFiltered = dataList;
+private:
+    [[nodiscard]] static std::vector<Feedback> filterBySentiment(
+        const std::vector<Feedback>& dataList,
+        const std::string& sFilter) {
+        if (sFilter == AppConfig::FILTER_ALL) {
+            return dataList;
         }
-
-        std::vector<Feedback> finalFiltered;
-        if (kFilter != u8"전체") {
-            for (const auto& item : tmpFiltered) {
-                std::string txt = item.getText();
-                if (matchesCategoryMain(txt, kFilter)) {
-                    finalFiltered.push_back(item);
-                }
+        std::vector<Feedback> filtered;
+        for (const auto& item : dataList) {
+            if (SentimentClassifier::classifyUtf8(item.getText()) == sFilter) {
+                filtered.push_back(item);
             }
-        } else {
-            finalFiltered = tmpFiltered;
         }
+        return filtered;
+    }
 
-        for (const auto& i : finalFiltered) {
+    [[nodiscard]] static std::vector<Feedback> filterByCategory(
+        const std::vector<Feedback>& dataList,
+        const std::string& kFilter) {
+        if (kFilter == AppConfig::FILTER_ALL) {
+            return dataList;
+        }
+        std::vector<Feedback> filtered;
+        for (const auto& item : dataList) {
+            if (CategoryMatcher::matchesMain(item.getText(), kFilter)) {
+                filtered.push_back(item);
+            }
+        }
+        return filtered;
+    }
+
+    static void printFilteredToStdout(const std::vector<Feedback>& filtered) {
+        for (const auto& i : filtered) {
             std::cout << i.getText() << std::endl;
         }
-
-        return finalFiltered;
     }
 };

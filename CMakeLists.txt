@@ -14,7 +14,10 @@ endif()
 add_executable(feedback_analyzer
     src/cpp/main.cpp
     src/cpp/Constants.cpp
+    src/cpp/FeedbackApp.cpp
+    src/cpp/FeedbackRepository.cpp
     src/cpp/Filters.cpp
+    src/cpp/HtmlPageRenderer.cpp
     src/cpp/Logger.cpp
     src/cpp/Session.cpp
     src/cpp/TextAnalyzer.cpp

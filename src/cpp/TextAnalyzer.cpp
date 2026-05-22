@@ -1,4 +1,1 @@
-#include "TextAnalyzer.h"
-
-std::map<std::string, int> TextAnalyzer::globalSent;
-std::map<std::string, int> TextAnalyzer::globalKw;
+// TextAnalyzer logic is header-only after Phase 2/3 refactor.

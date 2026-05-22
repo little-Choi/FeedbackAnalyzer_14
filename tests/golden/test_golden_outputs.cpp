@@ -19,7 +19,7 @@ std::string captureFilStdout(Filters& filters,
                              const std::string& keyword) {
     std::ostringstream buffer;
     auto* previous = std::cout.rdbuf(buffer.rdbuf());
-    filters.fil(data, sentiment, keyword);
+    (void)filters.fil(data, sentiment, keyword);
     std::cout.rdbuf(previous);
     return buffer.str();
 }

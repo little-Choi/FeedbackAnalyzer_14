@@ -1,29 +1,23 @@
 #pragma once
-#include <vector>
-#include <map>
-#include <string>
+
+#include "FeedbackRepository.h"
 #include "Feedback.h"
 
+#include <string>
+#include <vector>
+
+// Thin legacy facade over FeedbackRepository (Phase 4-1).
 class Session {
-private:
-    static std::vector<Feedback> currentFeedbacks;
-    static std::map<std::string, std::string> internalData;
-    static std::map<std::string, std::string> filterOptions;
-
 public:
-    static void initSessionStateUgly() {
-        // already initialized as static
-    }
+    static void initSessionStateUgly() { FeedbackRepository::init(); }
 
-    static std::vector<Feedback>& getOldDataFromSession(const std::string& key) {
-        return currentFeedbacks;
+    static std::vector<Feedback>& getOldDataFromSession(const std::string& /*key*/) {
+        return FeedbackRepository::all();
     }
 
     static void updateCurrentFeedbacks(const std::vector<Feedback>& feedbacks) {
-        currentFeedbacks = feedbacks;
+        FeedbackRepository::setAll(feedbacks);
     }
 
-    static std::vector<Feedback>& getCurrentFeedbacks() {
-        return currentFeedbacks;
-    }
+    static std::vector<Feedback>& getCurrentFeedbacks() { return FeedbackRepository::all(); }
 };

@@ -79,7 +79,7 @@ TEST_CASE_METHOD(FiltersFixture, "FI-P2-02 fil prints filtered lines to stdout",
     auto data = makeFeedbacks({u8"배송이 빠르고 좋습니다"});
     std::ostringstream buffer;
     auto* previous = std::cout.rdbuf(buffer.rdbuf());
-    filters.fil(data, u8"긍정", u8"전체");
+    (void)filters.fil(data, u8"긍정", u8"전체");
     std::cout.rdbuf(previous);
     REQUIRE(buffer.str().find(u8"배송이 빠르고 좋습니다") != std::string::npos);
 }

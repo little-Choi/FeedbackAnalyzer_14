@@ -9,6 +9,7 @@ FetchContent_MakeAvailable(Catch2)
 
 set(DOMAIN_SOURCES
     ${CMAKE_SOURCE_DIR}/src/cpp/Constants.cpp
+    ${CMAKE_SOURCE_DIR}/src/cpp/FeedbackRepository.cpp
     ${CMAKE_SOURCE_DIR}/src/cpp/Filters.cpp
     ${CMAKE_SOURCE_DIR}/src/cpp/Logger.cpp
     ${CMAKE_SOURCE_DIR}/src/cpp/Session.cpp
@@ -29,7 +30,6 @@ set(TEST_SOURCES
     unit/test_performance.cpp
     unit/test_logger.cpp
     unit/test_ui_components.cpp
-    unit/test_file_handler.cpp
     unit/test_html_escape.cpp
     unit/test_p0_regression.cpp
     integration/test_csv_behavior.cpp

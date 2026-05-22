@@ -1,8 +1,10 @@
 #pragma once
 
+#include "AppConfig.h"
 #include "Constants.h"
 #include "CsvHelpers.h"
 #include "Feedback.h"
+#include "FeedbackRepository.h"
 #include "Filters.h"
 #include "httplib.h"
 #include "Session.h"
@@ -21,13 +23,13 @@ class HttpTestServer {
 public:
     static constexpr const char* kThrowMarker = "__TEST_THROW__";
 
-    static std::vector<Feedback>& filData() { return fil_data_; }
+    static std::vector<Feedback>& filData() { return FeedbackRepository::lastFiltered(); }
 
     HttpTestServer() {
         Constants::init();
-        Filters::initFilterKeywords();
+        FeedbackRepository::init();
         Session::updateCurrentFeedbacks({});
-        fil_data_.clear();
+        FeedbackRepository::clearLastFiltered();
 
         svr_.Get("/", [](const httplib::Request&, httplib::Response& res) {
             auto& feedbacks = Session::getOldDataFromSession("current_feedbacks");
@@ -123,7 +125,7 @@ public:
                                     "text/html; charset=UTF-8");
                     return;
                 }
-                fil_data_ = filtered;
+                FeedbackRepository::setLastFiltered(filtered);
                 auto sentimentResults = analyzer_.sent(filtered);
                 auto keywordResults = analyzer_.kw(filtered);
                 res.status = 200;
@@ -138,15 +140,10 @@ public:
         });
 
         svr_.Get("/download", [](const httplib::Request&, httplib::Response& res) {
-            std::ostringstream csv;
-            csv << "\xEF\xBB\xBF";
-            csv << "text\n";
-            for (const auto& iter : fil_data_) {
-                csv << iter.getText() << "\n";
-            }
+            const std::string csv = buildDownloadCsv(FeedbackRepository::lastFiltered());
             res.set_header("Content-Disposition", "attachment; filename=\"filtered_feedback.csv\"");
             res.status = 200;
-            res.set_content(csv.str(), "text/csv; charset=UTF-8");
+            res.set_content(csv, "text/csv; charset=UTF-8");
         });
 
         const int port = svr_.bind_to_any_port("127.0.0.1");
@@ -161,13 +158,12 @@ public:
             thread_.join();
         }
         Session::updateCurrentFeedbacks({});
-        fil_data_.clear();
+        FeedbackRepository::clearLastFiltered();
     }
 
     const std::string& baseUrl() const { return base_url_; }
 
 private:
-    static std::vector<Feedback> fil_data_;
     httplib::Server svr_;
     std::thread thread_;
     std::string base_url_;
@@ -225,4 +221,3 @@ private:
 
 };
 
-inline std::vector<Feedback> HttpTestServer::fil_data_;

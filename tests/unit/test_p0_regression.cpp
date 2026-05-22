@@ -7,7 +7,6 @@
 
 TEST_CASE("P0 regression bundle CSV-R02 FI-F05 FI-F06 FI-F07b TA-S07", "[p0][regression]") {
     Constants::init();
-    Filters::initFilterKeywords();
 
     const std::string csv = std::string(u8"id,text\n1,") + u8"실제본문\n";
     auto texts = csvUploadTexts(csv);

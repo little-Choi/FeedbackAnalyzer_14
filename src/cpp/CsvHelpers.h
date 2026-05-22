@@ -1,19 +1,21 @@
 #pragma once
 
+#include "AppConfig.h"
 #include "Feedback.h"
 
 #include <cctype>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
-inline std::string trimCsvField(const std::string& value) {
+[[nodiscard]] inline std::string trimCsvField(std::string_view value) {
     const auto start = value.find_first_not_of(" \t\r\n");
     if (start == std::string::npos) {
         return {};
     }
     const auto end = value.find_last_not_of(" \t\r\n");
-    return value.substr(start, end - start + 1);
+    return std::string(value.substr(start, end - start + 1));
 }
 
 inline void stripUtf8Bom(std::string& line) {
@@ -150,8 +152,8 @@ inline void appendFeedbackFromCsvContent(const std::string& fileContent,
 
 inline std::string buildDownloadCsv(const std::vector<Feedback>& filData) {
     std::ostringstream csv;
-    csv << "\xEF\xBB\xBF";
-    csv << "text\n";
+    csv << AppConfig::UTF8_BOM;
+    csv << AppConfig::CSV_TEXT_HEADER << "\n";
     for (const auto& iter : filData) {
         csv << iter.getText() << "\n";
     }
