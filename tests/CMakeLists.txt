@@ -16,7 +16,11 @@ set(DOMAIN_SOURCES
     ${CMAKE_SOURCE_DIR}/src/cpp/UIComponents.cpp
 )
 
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/expected" FEEDBACK_GOLDEN_EXPECTED_DIR)
+string(REPLACE "\\" "/" FEEDBACK_GOLDEN_EXPECTED_DIR "${FEEDBACK_GOLDEN_EXPECTED_DIR}")
+
 set(TEST_SOURCES
+    golden/test_golden_outputs.cpp
     unit/test_feedback.cpp
     unit/test_text_analyzer.cpp
     unit/test_filters.cpp
@@ -41,6 +45,9 @@ function(configure_feedback_test_target target_name)
         ${CMAKE_CURRENT_SOURCE_DIR}/integration
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
+    target_compile_definitions(${target_name} PRIVATE
+        GOLDEN_EXPECTED_DIR="${FEEDBACK_GOLDEN_EXPECTED_DIR}"
+    )
     target_link_libraries(${target_name} PRIVATE Catch2::Catch2WithMain)
     if(WIN32)
         target_compile_definitions(${target_name} PRIVATE
@@ -63,6 +70,15 @@ endif()
 include(Catch)
 catch_discover_tests(feedback_analyzer_tests
     ADD_TAGS_AS_LABELS
+)
+
+# Golden Master: refresh baselines after intentional behavior change (see docs/golden_master.md)
+add_custom_target(update_golden
+    COMMAND ${CMAKE_COMMAND} -E env FEEDBACK_ANALYZER_UPDATE_GOLDEN=1
+            $<TARGET_FILE:feedback_analyzer_tests> "[golden]"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS feedback_analyzer_tests
+    COMMENT "Rewrite tests/expected/* from current outputs"
 )
 
 # feedback_analyzer_coverage: run manually after tests (same cases; avoids duplicate CTest entries)

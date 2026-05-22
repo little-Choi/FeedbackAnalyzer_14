@@ -88,7 +88,16 @@ ctest --test-dir build --output-on-failure
 build/feedback_analyzer_tests.exe
 ```
 
-태그 예: `feedback_analyzer_tests "[p0]"` · 알려진 결함: `[known-fail]`
+태그 예: `feedback_analyzer_tests "[p0]"` · Golden Master: `[golden]` · 알려진 결함: `[known-fail]`
+
+**Golden Master (출력 회귀):** [docs/golden_master.md](docs/golden_master.md) · 기대값 `tests/expected/`
+
+```bash
+ctest --test-dir build -R "GM-" --output-on-failure
+# baseline 갱신 (의도된 동작 변경 후)
+cmake --build build --target update_golden
+# 또는 .\scripts\update_golden.ps1
+```
 
 ```bash
 # 커버리지 빌드 (MinGW gcov)
